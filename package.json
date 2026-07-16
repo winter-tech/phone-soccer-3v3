@@ -1,0 +1,16 @@
+{
+  "name": "kai-f",
+  "version": "1.0.0",
+  "description": "Local 3v3 phone-controlled soccer party game.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.1"
+  }
+}

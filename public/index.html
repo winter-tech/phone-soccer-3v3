@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3V3 手机足球</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="display-page">
+    <main class="stadium">
+      <section class="topbar" aria-label="比赛状态">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span>3V3 手机足球</span>
+        </div>
+        <div class="scoreboard">
+          <span class="team blue">蓝队</span>
+          <strong id="score">0 : 0</strong>
+          <span class="team red">红队</span>
+        </div>
+        <div class="display-actions">
+          <div id="phase" class="phase">等待玩家</div>
+          <button id="restartButton" class="restart-button" type="button" title="重置比分和球员位置">重新开始</button>
+        </div>
+      </section>
+
+      <section class="field-wrap">
+        <canvas id="game" width="1100" height="660" aria-label="足球比赛画面"></canvas>
+        <div id="joinPanel" class="join-panel">
+          <div class="qr-shell">
+            <img id="qr" alt="扫码加入比赛" />
+          </div>
+          <div>
+            <h1>扫码加入比赛</h1>
+            <p>手机和这台电脑连接同一 Wi-Fi，扫描二维码即可成为球员。满 6 人自动开赛。</p>
+            <p id="joinUrl" class="join-url"></p>
+          </div>
+        </div>
+        <div id="goalFlash" class="goal-flash" hidden></div>
+      </section>
+
+      <section class="slots" id="slots" aria-label="玩家席位"></section>
+    </main>
+    <script src="/game.js"></script>
+  </body>
+</html>

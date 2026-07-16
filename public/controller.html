@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>加入 3V3 手机足球</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="controller-page">
+    <main class="controller">
+      <section id="joinScreen" class="phone-panel">
+        <h1>加入比赛</h1>
+        <label>
+          球员名
+          <input id="playerName" maxlength="16" autocomplete="nickname" placeholder="例如 Kai" />
+        </label>
+        <button id="joinButton" class="primary-button">加入球场</button>
+        <p id="joinStatus">等待连接大屏...</p>
+      </section>
+
+      <section id="padScreen" class="pad-screen" hidden>
+        <div class="phone-hud">
+          <div>
+            <span id="teamBadge" class="team-badge">队伍</span>
+            <strong id="playerBadge">球员</strong>
+          </div>
+          <span id="matchStatus">等待其他玩家</span>
+        </div>
+        <div class="touch-area">
+          <div id="joystick" class="joystick" aria-label="移动摇杆">
+            <div id="stick" class="stick"></div>
+          </div>
+          <button id="kickButton" class="kick-button">踢球</button>
+        </div>
+      </section>
+    </main>
+    <script src="/controller.js"></script>
+  </body>
+</html>

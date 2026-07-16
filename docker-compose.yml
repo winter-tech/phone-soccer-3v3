@@ -1,0 +1,9 @@
+services:
+  phone-soccer-3v3:
+    build: .
+    container_name: phone-soccer-3v3
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
