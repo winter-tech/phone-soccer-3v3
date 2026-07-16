@@ -2,8 +2,13 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>加入 3V3 手机足球</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>加入手机足球</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="controller-page">
@@ -15,25 +20,32 @@
           <input id="playerName" maxlength="16" autocomplete="nickname" placeholder="例如 Kai" />
         </label>
         <button id="joinButton" class="primary-button">加入球场</button>
-        <p id="joinStatus">等待连接大屏...</p>
+        <p id="joinStatus">等待连接...</p>
       </section>
 
       <section id="padScreen" class="pad-screen" hidden>
-        <div class="phone-hud">
-          <div>
-            <span id="teamBadge" class="team-badge">队伍</span>
-            <strong id="playerBadge">球员</strong>
+        <div class="phone-stage">
+          <div class="phone-field-wrap">
+            <canvas id="phoneGame" width="1100" height="660" aria-label="比赛画面"></canvas>
           </div>
-          <span id="matchStatus">等待其他玩家</span>
-        </div>
-        <div class="touch-area">
-          <div id="joystick" class="joystick" aria-label="移动摇杆">
+          <div class="phone-topbar">
+            <div class="phone-topbar-left">
+              <span id="teamBadge" class="team-badge">队伍</span>
+              <strong id="playerBadge">球员</strong>
+            </div>
+            <div class="phone-score" id="phoneScore">0 : 0</div>
+            <span id="matchStatus">等待其他玩家</span>
+          </div>
+          <div id="phonePauseBanner" class="pause-banner phone-pause" hidden>比赛暂停</div>
+          <div id="phoneGoalFlash" class="goal-flash phone-goal" hidden></div>
+          <div id="joystick" class="joystick floating-control left" aria-label="移动摇杆">
             <div id="stick" class="stick"></div>
           </div>
-          <button id="kickButton" class="kick-button">踢球</button>
+          <button id="kickButton" class="kick-button floating-control right">踢球</button>
         </div>
       </section>
     </main>
+    <script src="/field.js"></script>
     <script src="/controller.js"></script>
   </body>
 </html>

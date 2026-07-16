@@ -2,11 +2,13 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const QRCode = require("qrcode");
 const { WebSocketServer } = require("ws");
 
 const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.join(__dirname, "public");
+const MAX_PLAYERS = 20;
 
 const FIELD = { w: 1100, h: 660 };
 const PLAYER_RADIUS = 18;
@@ -18,23 +20,13 @@ const FRICTION = 0.986;
 const GOAL_Y1 = FIELD.h / 2 - 92;
 const GOAL_Y2 = FIELD.h / 2 + 92;
 
-const players = Array.from({ length: 6 }, (_, i) => ({
-  id: null,
-  slot: i,
-  name: `P${i + 1}`,
-  team: i < 3 ? "blue" : "red",
-  x: 0,
-  y: 0,
-  vx: 0,
-  vy: 0,
-  dx: 0,
-  dy: 0,
-  connected: false,
-  lastSeen: 0,
-}));
+/** @type {Array<{id:string,slot:number,name:string,team:'blue'|'red',x:number,y:number,vx:number,vy:number,dx:number,dy:number,connected:boolean,lastSeen:number}>} */
+let players = [];
+let nextSlot = 1;
 
 let ball = { x: FIELD.w / 2, y: FIELD.h / 2, vx: 0, vy: 0 };
 let score = { blue: 0, red: 0 };
+/** @type {'waiting'|'playing'|'paused'|'goal'} */
 let phase = "waiting";
 let goalFlash = "";
 const clients = new Map();
@@ -58,22 +50,66 @@ function publicHost(req) {
   return host;
 }
 
-function resetPositions() {
-  const blueX = FIELD.w * 0.27;
-  const redX = FIELD.w * 0.73;
-  const ys = [FIELD.h * 0.28, FIELD.h * 0.5, FIELD.h * 0.72];
-  players.forEach((p, i) => {
-    p.x = i < 3 ? blueX : redX;
-    p.y = ys[i % 3];
+function teamCounts() {
+  let blue = 0;
+  let red = 0;
+  for (const p of players) {
+    if (!p.connected) continue;
+    if (p.team === "blue") blue += 1;
+    else red += 1;
+  }
+  return { blue, red, total: blue + red };
+}
+
+function canPlay() {
+  const { blue, red } = teamCounts();
+  return blue >= 1 && red >= 1;
+}
+
+function pickBalancedTeam() {
+  const { blue, red } = teamCounts();
+  if (blue < red) return "blue";
+  if (red < blue) return "red";
+  return Math.random() < 0.5 ? "blue" : "red";
+}
+
+function placeTeam(teamPlayers, x) {
+  const n = teamPlayers.length;
+  teamPlayers.forEach((p, i) => {
+    const t = (i + 1) / (n + 1);
+    p.x = x;
+    p.y = FIELD.h * (0.1 + 0.8 * t);
     p.vx = 0;
     p.vy = 0;
     p.dx = 0;
     p.dy = 0;
   });
+}
+
+function resetPositions() {
+  placeTeam(
+    players.filter((p) => p.team === "blue"),
+    FIELD.w * 0.27,
+  );
+  placeTeam(
+    players.filter((p) => p.team === "red"),
+    FIELD.w * 0.73,
+  );
   ball = { x: FIELD.w / 2, y: FIELD.h / 2, vx: 0, vy: 0 };
 }
 
-resetPositions();
+function spawnPlayer(player) {
+  const mates = players.filter((p) => p.team === player.team && p.id !== player.id);
+  const x = player.team === "blue" ? FIELD.w * 0.27 : FIELD.w * 0.73;
+  const n = mates.length + 1;
+  const t = n / (n + 1);
+  player.x = x;
+  player.y = FIELD.h * (0.1 + 0.8 * t);
+  player.vx = 0;
+  player.vy = 0;
+  player.dx = 0;
+  player.dy = 0;
+}
 
 function showFlash(text, ms = 1400) {
   goalFlash = text;
@@ -84,10 +120,42 @@ function showFlash(text, ms = 1400) {
   }, ms);
 }
 
+function syncPhase(reason = "") {
+  if (phase === "goal") return;
+
+  if (canPlay()) {
+    if (phase === "waiting") {
+      phase = "playing";
+      showFlash("开球！");
+      return;
+    }
+    if (phase === "paused") {
+      phase = "playing";
+      showFlash("比赛继续");
+    }
+    return;
+  }
+
+  const { total } = teamCounts();
+  if (phase === "playing") {
+    ball.vx = 0;
+    ball.vy = 0;
+    phase = total === 0 ? "waiting" : "paused";
+    showFlash(phase === "paused" ? "比赛暂停" : "等待玩家", 1800);
+    return;
+  }
+
+  if (phase === "paused" && total === 0) {
+    phase = "waiting";
+    resetPositions();
+    if (reason) showFlash("等待玩家", 1600);
+  }
+}
+
 function restartMatch() {
   score = { blue: 0, red: 0 };
   resetPositions();
-  phase = players.every((p) => p.connected) ? "playing" : "waiting";
+  phase = canPlay() ? "playing" : "waiting";
   showFlash(phase === "playing" ? "重新开球！" : "已重置，等待玩家", 1600);
 }
 
@@ -103,61 +171,92 @@ function broadcast(payload) {
 }
 
 function stateForClient() {
+  const counts = teamCounts();
   return {
     type: "state",
     field: FIELD,
     phase,
     score,
     goalFlash,
-    connectedCount: players.filter((p) => p.connected).length,
-    players: players.map(({ id, dx, dy, lastSeen, ...rest }) => rest),
+    maxPlayers: MAX_PLAYERS,
+    connectedCount: counts.total,
+    teamCounts: { blue: counts.blue, red: counts.red },
+    players: players.map(({ id, dx, dy, lastSeen, ...rest }) => ({
+      ...rest,
+      id,
+    })),
     ball,
   };
 }
 
 function joinPlayer(ws, name) {
-  let player = players.find((p) => p.id === clients.get(ws)?.playerId);
-  if (!player) player = players.find((p) => !p.connected);
-  if (!player) {
+  const meta = clients.get(ws);
+  if (!meta) return;
+
+  let player = players.find((p) => p.id === meta.playerId);
+  if (player) {
+    player.name = String(name || `P${player.slot}`).slice(0, 16);
+    player.connected = true;
+    player.lastSeen = Date.now();
+    send(ws, {
+      type: "joined",
+      slot: player.slot,
+      team: player.team,
+      name: player.name,
+      playerId: player.id,
+    });
+    syncPhase();
+    return;
+  }
+
+  if (teamCounts().total >= MAX_PLAYERS) {
     send(ws, { type: "full" });
     return;
   }
 
-  player.id = clients.get(ws).id;
-  player.name = String(name || `P${player.slot + 1}`).slice(0, 16);
-  player.connected = true;
-  player.lastSeen = Date.now();
-  clients.get(ws).playerId = player.id;
+  const team = pickBalancedTeam();
+  player = {
+    id: meta.id,
+    slot: nextSlot,
+    name: String(name || `P${nextSlot}`).slice(0, 16),
+    team,
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    dx: 0,
+    dy: 0,
+    connected: true,
+    lastSeen: Date.now(),
+  };
+  nextSlot += 1;
+  spawnPlayer(player);
+  players.push(player);
+  meta.playerId = player.id;
+  meta.role = "player";
+
   send(ws, {
     type: "joined",
     slot: player.slot,
     team: player.team,
     name: player.name,
+    playerId: player.id,
   });
-
-  if (players.every((p) => p.connected) && phase === "waiting") {
-    phase = "playing";
-    showFlash("开球！");
-  }
+  syncPhase();
 }
 
 function disconnect(ws) {
   const meta = clients.get(ws);
   clients.delete(ws);
   if (!meta?.playerId) return;
-  const player = players.find((p) => p.id === meta.playerId);
-  if (!player) return;
-  player.connected = false;
-  player.dx = 0;
-  player.dy = 0;
-  if (phase === "playing") {
-    phase = "waiting";
-    resetPositions();
-    showFlash("有玩家离开，等待补位", 1800);
-  }
+  const idx = players.findIndex((p) => p.id === meta.playerId);
+  if (idx < 0) return;
+  players.splice(idx, 1);
+  syncPhase("leave");
 }
 
 function kick(player) {
+  if (phase !== "playing") return;
   const dx = ball.x - player.x;
   const dy = ball.y - player.y;
   const dist = Math.hypot(dx, dy);
@@ -175,7 +274,7 @@ function clampPlayer(p) {
 }
 
 function step(dt) {
-  if (phase !== "playing") return;
+  if (phase !== "playing" && phase !== "paused") return;
 
   for (const p of players) {
     if (!p.connected) continue;
@@ -183,6 +282,8 @@ function step(dt) {
     p.y += p.dy * PLAYER_SPEED * dt;
     clampPlayer(p);
   }
+
+  if (phase !== "playing") return;
 
   ball.x += ball.vx * dt;
   ball.y += ball.vy * dt;
@@ -225,7 +326,15 @@ function scoreGoal(team) {
   phase = "goal";
   setTimeout(() => {
     resetPositions();
-    phase = players.every((p) => p.connected) ? "playing" : "waiting";
+    if (canPlay()) {
+      phase = "playing";
+    } else if (teamCounts().total === 0) {
+      phase = "waiting";
+    } else {
+      phase = "paused";
+      ball.vx = 0;
+      ball.vy = 0;
+    }
   }, 2200);
 }
 
@@ -275,7 +384,7 @@ const server = http.createServer(async (req, res) => {
       ".js": "application/javascript; charset=utf-8",
       ".svg": "image/svg+xml",
     }[ext] || "application/octet-stream";
-    res.writeHead(200, { "content-type": contentType });
+    res.writeHead(200, { "content-type": contentType, "cache-control": "no-store" });
     res.end(data);
   });
 });

@@ -45,8 +45,7 @@ input {
   padding: 18px;
 }
 
-.topbar,
-.slots {
+.topbar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -126,6 +125,12 @@ input {
   color: var(--muted);
 }
 
+.phase.paused {
+  color: #102014;
+  background: rgba(246, 211, 101, 0.92);
+  border-color: rgba(246, 211, 101, 0.5);
+}
+
 .restart-button {
   min-height: 48px;
   padding: 0 16px;
@@ -181,6 +186,42 @@ input {
   display: none;
 }
 
+/* 比赛开始后：二维码缩小到球场左上角 */
+.join-compact-label {
+  display: none;
+}
+
+.join-panel.compact {
+  top: 12px;
+  left: 12px;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  grid-template-columns: 1fr;
+  width: auto;
+  padding: 8px;
+  gap: 0;
+  border-radius: 8px;
+}
+
+.join-panel.compact .qr-shell {
+  width: 92px;
+  padding: 6px;
+}
+
+.join-panel.compact .join-info {
+  display: none;
+}
+
+.join-panel.compact .join-compact-label {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
 .qr-shell {
   display: grid;
   place-items: center;
@@ -225,10 +266,37 @@ input {
   font-size: clamp(36px, 7vw, 86px);
   font-weight: 800;
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+
+.pause-banner {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  padding: 12px 22px;
+  border-radius: 8px;
+  background: rgba(8, 20, 16, 0.88);
+  border: 1px solid rgba(246, 211, 101, 0.7);
+  color: var(--gold);
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pause-banner[hidden],
+.goal-flash[hidden] {
+  display: none;
 }
 
 .slots {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  align-items: stretch;
+  gap: 10px;
+  min-height: 58px;
 }
 
 .slot {
@@ -264,24 +332,28 @@ input {
 
 .controller-page {
   min-height: 100vh;
+  min-height: 100dvh;
   touch-action: none;
   user-select: none;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 34%),
     #0b1d17;
+  overflow: hidden;
+}
+
+.controller-page.in-match {
+  background: #06110e;
 }
 
 .controller {
   min-height: 100vh;
-}
-
-.phone-panel,
-.pad-screen {
-  min-height: 100vh;
-  padding: 22px;
+  min-height: 100dvh;
 }
 
 .phone-panel {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 22px;
   display: grid;
   align-content: center;
   gap: 16px;
@@ -339,70 +411,129 @@ input {
 }
 
 .pad-screen {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 22px;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  overflow: hidden;
 }
 
 .pad-screen[hidden] {
   display: none;
 }
 
-.phone-hud {
+.phone-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #06110e;
+  overflow: hidden;
+}
+
+.phone-field-wrap {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
+  justify-content: center;
+}
+
+#phoneGame {
+  display: block;
+  background: var(--grass-1);
+  /* CSS width/height 由 JS resizeCanvas() 动态设置 */
+}
+
+.phone-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(6px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+  background: transparent;
+  pointer-events: none;
+}
+
+.phone-topbar-left {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phone-topbar #matchStatus {
+  flex: 1 1 0;
+  text-align: right;
+}
+
+.phone-score {
+  flex: 0 0 auto;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 4px 14px;
   border-radius: 8px;
-  background: var(--panel);
+  background: rgba(8, 20, 16, 0.7);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .team-badge {
-  display: inline-flex;
-  align-items: center;
-  min-width: 58px;
-  height: 28px;
-  justify-content: center;
-  margin-right: 8px;
-  border-radius: 999px;
+  display: inline;
   font-weight: 800;
 }
 
 .team-badge.blue {
-  background: var(--blue);
-  color: #071625;
+  background: none;
+  color: var(--blue);
 }
 
 .team-badge.red {
-  background: var(--red);
-  color: #2b0706;
+  background: none;
+  color: var(--red);
 }
 
 #matchStatus {
   color: var(--muted);
   text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
-.touch-area {
-  display: grid;
-  grid-template-columns: 1fr 148px;
-  align-items: end;
-  gap: 24px;
-  min-height: 0;
+.phone-topbar strong {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.floating-control {
+  position: absolute;
+  z-index: 5;
+  bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.floating-control.left {
+  left: max(16px, env(safe-area-inset-left));
+}
+
+.floating-control.right {
+  right: max(16px, env(safe-area-inset-right));
 }
 
 .joystick {
-  position: relative;
-  width: min(58vw, 260px);
+  position: absolute;
+  width: min(28vw, 150px);
   aspect-ratio: 1;
-  align-self: center;
-  justify-self: center;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid rgba(255, 255, 255, 0.22);
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.14) 0 26%, transparent 27%),
-    rgba(255, 255, 255, 0.08);
+    radial-gradient(circle, rgba(255, 255, 255, 0.16) 0 26%, transparent 27%),
+    rgba(8, 20, 16, 0.35);
+  backdrop-filter: blur(4px);
 }
 
 .stick {
@@ -418,10 +549,12 @@ input {
 }
 
 .kick-button {
-  width: 148px;
+  width: min(24vw, 120px);
   aspect-ratio: 1;
   border-radius: 50%;
-  font-size: 28px;
+  font-size: clamp(18px, 4vw, 26px);
+  background: rgba(255, 255, 255, 0.5);
+  color: #102014;
 }
 
 .kick-button:active,
@@ -429,17 +562,16 @@ input {
   transform: translateY(2px) scale(0.99);
 }
 
-@media (max-width: 760px) {
-  .touch-area {
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-  }
-
-  .kick-button {
-    width: 118px;
-    font-size: 24px;
-  }
+.phone-pause {
+  top: 42%;
+  font-size: clamp(20px, 5vw, 36px);
 }
+
+.phone-goal {
+  font-size: clamp(28px, 7vw, 56px);
+  padding: 12px 18px;
+}
+
 
 @media (max-width: 900px) {
   .stadium {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>3V3 手机足球</title>
+    <title>手机足球</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="display-page">
@@ -11,7 +11,7 @@
       <section class="topbar" aria-label="比赛状态">
         <div class="brand">
           <span class="brand-mark"></span>
-          <span>3V3 手机足球</span>
+          <span>手机足球</span>
         </div>
         <div class="scoreboard">
           <span class="team blue">蓝队</span>
@@ -30,17 +30,20 @@
           <div class="qr-shell">
             <img id="qr" alt="扫码加入比赛" />
           </div>
-          <div>
+          <div class="join-info">
             <h1>扫码加入比赛</h1>
-            <p>手机和这台电脑连接同一 Wi-Fi，扫描二维码即可成为球员。满 6 人自动开赛。</p>
+            <p id="joinHint">手机扫码加入。随机均衡分队，双方各至少 1 人自动开赛，最多 20 人。</p>
             <p id="joinUrl" class="join-url"></p>
           </div>
+          <span class="join-compact-label">扫码加入</span>
         </div>
+        <div id="pauseBanner" class="pause-banner" hidden>比赛暂停</div>
         <div id="goalFlash" class="goal-flash" hidden></div>
       </section>
 
       <section class="slots" id="slots" aria-label="玩家席位"></section>
     </main>
+    <script src="/field.js"></script>
     <script src="/game.js"></script>
   </body>
 </html>

@@ -6,12 +6,54 @@ const joinStatus = document.getElementById("joinStatus");
 const teamBadge = document.getElementById("teamBadge");
 const playerBadge = document.getElementById("playerBadge");
 const matchStatus = document.getElementById("matchStatus");
+const phoneScore = document.getElementById("phoneScore");
+const phonePauseBanner = document.getElementById("phonePauseBanner");
+const phoneGoalFlash = document.getElementById("phoneGoalFlash");
 const joystick = document.getElementById("joystick");
 const stick = document.getElementById("stick");
 const kickButton = document.getElementById("kickButton");
+const canvas = document.getElementById("phoneGame");
+const ctx = canvas.getContext("2d");
+
+// 球场固定内部分辨率
+const FIELD_W = 1100;
+const FIELD_H = 660;
+const FIELD_RATIO = FIELD_W / FIELD_H;
+
+/**
+ * Letterbox / contain-fit：
+ * 保持 1100:660 比例，居中显示，多余空间留黑边。
+ * 不旋转、不锁屏——横竖屏自动适配。
+ */
+function resizeCanvas() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (w === 0 || h === 0) return;
+
+  const screenRatio = w / h;
+  let dispW, dispH;
+
+  if (screenRatio > FIELD_RATIO) {
+    // 屏幕比球场宽 → 充满高度，左右留黑边
+    dispH = h;
+    dispW = h * FIELD_RATIO;
+  } else {
+    // 屏幕比球场窄 → 充满宽度，上下留黑边
+    dispW = w;
+    dispH = w / FIELD_RATIO;
+  }
+
+  canvas.style.width = dispW + "px";
+  canvas.style.height = dispH + "px";
+}
+
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 100));
 
 let socket = null;
 let joined = false;
+let myPlayerId = null;
+let state = null;
 let currentInput = { dx: 0, dy: 0 };
 let activePointer = null;
 
@@ -28,30 +70,35 @@ function connect() {
     const msg = JSON.parse(event.data);
     if (msg.type === "joined") {
       joined = true;
-      joinStatus.textContent = "已加入，控制器已打开。";
+      myPlayerId = msg.playerId;
+      joinStatus.textContent = "已加入。";
       joinScreen.hidden = true;
       padScreen.hidden = false;
+      document.body.classList.add("in-match");
       teamBadge.textContent = msg.team === "blue" ? "蓝队" : "红队";
       teamBadge.className = `team-badge ${msg.team}`;
-      playerBadge.textContent = `${msg.name} · ${msg.slot + 1}号`;
+      playerBadge.textContent = `${msg.name} · ${msg.slot}号`;
+      requestAnimationFrame(resizeCanvas);
     }
     if (msg.type === "full") {
-      joinStatus.textContent = "球员已满，请等待下一局。";
+      joinStatus.textContent = "人数已满（最多 20 人），请稍后再试。";
     }
     if (msg.type === "state") {
-      const labels = {
-        waiting: `等待玩家 ${msg.connectedCount}/6`,
-        playing: "比赛中",
-        goal: msg.goalFlash || "进球",
-      };
-      matchStatus.textContent = labels[msg.phase] || "准备中";
+      state = msg;
+      matchStatus.textContent = FieldRender.phaseLabel(msg);
+      phoneScore.textContent = `${msg.score.blue} : ${msg.score.red}`;
+      phonePauseBanner.hidden = msg.phase !== "paused";
+      phoneGoalFlash.hidden = !msg.goalFlash;
+      phoneGoalFlash.textContent = msg.goalFlash || "";
     }
   });
   socket.addEventListener("close", () => {
     joined = false;
+    myPlayerId = null;
     joinButton.disabled = true;
     joinScreen.hidden = false;
     padScreen.hidden = true;
+    document.body.classList.remove("in-match");
     joinStatus.textContent = "连接断开，正在重连...";
     setTimeout(connect, 900);
   });
@@ -133,4 +180,12 @@ setInterval(() => {
   if (joined) send({ type: "input", ...currentInput });
 }, 120);
 
+function frame() {
+  if (!padScreen.hidden) {
+    FieldRender.drawScene(ctx, state, { highlightId: myPlayerId });
+  }
+  requestAnimationFrame(frame);
+}
+
 connect();
+frame();
