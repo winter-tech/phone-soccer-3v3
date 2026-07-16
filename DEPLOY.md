@@ -47,13 +47,18 @@ http://服务器公网IP:3000
 
 如果云服务器有安全组或防火墙，需要放行 TCP `3000` 端口。
 
-## 方式二：Docker 部署
+## 方式二：Docker 部署（推荐）
+
+镜像地址：`ghcr.io/winter-tech/phone-soccer-3v3:latest`
+
+推送到 `main` 后，GitHub Actions 会自动构建并发布到 GHCR。首次发布后，若拉取报 401/403，到仓库 Packages 把该镜像可见性改为 **Public**。
+
+### Compose 一键部署
 
 ```bash
 git clone https://github.com/winter-tech/phone-soccer-3v3.git
 cd phone-soccer-3v3
-docker build -t phone-soccer-3v3 .
-docker run -d --name phone-soccer-3v3 -p 3000:3000 phone-soccer-3v3
+docker compose up -d
 ```
 
 打开：
@@ -62,7 +67,7 @@ docker run -d --name phone-soccer-3v3 -p 3000:3000 phone-soccer-3v3
 http://服务器公网IP:3000
 ```
 
-也可以用 Docker Compose：
+若无法访问 GHCR，取消 `docker-compose.yml` 中 `build` 注释后执行：
 
 ```bash
 docker compose up -d --build

@@ -43,21 +43,22 @@ http://localhost:3000
 
 ## Docker 快速运行
 
-```bash
-docker build -t phone-soccer-3v3 .
-docker run -d --name phone-soccer-3v3 -p 3000:3000 phone-soccer-3v3
-```
-
-或者：
+推荐直接拉取 GHCR 镜像（无需本地构建）：
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 然后打开：
 
 ```text
 http://服务器IP:3000
+```
+
+若无法访问 GHCR，可取消 `docker-compose.yml` 里 `build` 注释后执行：
+
+```bash
+docker compose up -d --build
 ```
 
 ## 项目结构
