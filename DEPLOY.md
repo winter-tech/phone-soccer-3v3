@@ -7,7 +7,7 @@
 如果你已经有一个空仓库，例如：
 
 ```text
-https://github.com/your-name/phone-soccer-3v3.git
+https://github.com/winter-tech/phone-soccer-3v3.git
 ```
 
 在本地项目目录执行：
@@ -17,14 +17,14 @@ git init
 git add .
 git commit -m "Initial 3v3 phone soccer game"
 git branch -M main
-git remote add origin https://github.com/your-name/phone-soccer-3v3.git
+git remote add origin https://github.com/winter-tech/phone-soccer-3v3.git
 git push -u origin main
 ```
 
 如果使用 SSH：
 
 ```bash
-git remote add origin git@github.com:your-name/phone-soccer-3v3.git
+git remote add origin git@github.com:winter-tech/phone-soccer-3v3.git
 git push -u origin main
 ```
 
@@ -33,7 +33,7 @@ git push -u origin main
 服务器需要安装 Node.js 20 或 22。
 
 ```bash
-git clone https://github.com/your-name/phone-soccer-3v3.git
+git clone https://github.com/winter-tech/phone-soccer-3v3.git
 cd phone-soccer-3v3
 npm ci
 PORT=3000 npm start
@@ -50,7 +50,7 @@ http://服务器公网IP:3000
 ## 方式二：Docker 部署
 
 ```bash
-git clone https://github.com/your-name/phone-soccer-3v3.git
+git clone https://github.com/winter-tech/phone-soccer-3v3.git
 cd phone-soccer-3v3
 docker build -t phone-soccer-3v3 .
 docker run -d --name phone-soccer-3v3 -p 3000:3000 phone-soccer-3v3

@@ -1,5 +1,5 @@
 {
-  "name": "kai-f",
+  "name": "phone-soccer-3v3",
   "version": "1.0.0",
   "description": "Local 3v3 phone-controlled soccer party game.",
   "main": "server.js",
